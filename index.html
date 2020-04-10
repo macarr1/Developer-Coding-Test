@@ -1,0 +1,120 @@
+<link rel="stylesheet" href="stylesheet.css">
+<!-- get city name from user-->
+Where would you like to eat?
+<div id="input-box">
+<input type="text" id="city_name">
+<!-- call function on button click with city as passed parameter-->
+<button onclick="getRestaurants(document.getElementById('city_name').value)">Submit</button>
+</div>
+<!-- location to hold the printed restaurants-->
+<div id="restaurant-div" style="background-color:lightblue">
+    <table align="center" id="print_restaurants">
+        <!-- table is filled after pressing submit-->
+    </table>
+</div>
+
+<script>
+
+    function getRestaurants(city) {
+
+        // join API url and city entered by user
+        const url = 'http://opentable.herokuapp.com/api/restaurants?city=';
+        const api_url = url + city;
+        var new_page_api_url;
+        var current_page = 1;
+        var restaurant_info = "";
+        var restaurant_name = "";
+        var restaurant_address = "";
+        var restaurant_price = "";
+
+        fetch(api_url).then((response) => {
+            return response.json();
+        })
+            .then((data) => {
+                // add header information to table to give the user some context
+                restaurant_info += "<tr><th></th><th>" + data.total_entries + " restaurants in " + city +
+                    "</th></tr><tr><th></th><th>~</th></tr><tr><th>Name</th><th>Address</th><th>Price</th></tr><tr><th></th><th>~</th></tr>";
+                document.getElementById("print_restaurants").innerHTML = restaurant_info;
+
+                // when there are no entries
+                if(data.total_entries == 0){
+                    restaurant_info = "Sorry, no restaurants are in the database for this city.";
+                    document.getElementById("print_restaurants").innerHTML = restaurant_info;
+                }
+                // when there are less total entries than entries per page
+                else if (Math.floor(data.total_entries / data.per_page) == 0) {
+                    for (var k = 0; k < data.total_entries % data.per_page; k++) {
+                        // update variables and add entry to table
+                        restaurant_name = data.restaurants[k].name;
+                        restaurant_address = data.restaurants[k].address;
+                        restaurant_price = data.restaurants[k].price;
+                        restaurant_info +=
+                            "<tr> <th value=" + restaurant_name + ">" + restaurant_name + "</th>" +
+                            "<th>" + restaurant_address + "</th>" + "<th>" + restaurant_price + "</th>" + "</tr>";
+                        document.getElementById("print_restaurants").innerHTML = restaurant_info;
+                    }
+                }
+
+                // when there are more total entries than entries per page
+                else {
+                    // for every page except the last page, print entries until new page is reached
+                    for (var i = 0; i < Math.floor(data.total_entries / data.per_page); i++) {
+                        for (var j = 0; j < data.per_page; j++) {
+                            if (current_page == 1) {
+                                restaurant_name = data.restaurants[j].name;
+                                restaurant_address = data.restaurants[j].address;
+                                restaurant_price = data.restaurants[j].price;
+                                restaurant_info += "<tr> <th value=" + restaurant_name + ">" + restaurant_name + "</th>" +
+                                    "<th>" + restaurant_address + "</th>" + "<th>" + restaurant_price + "</th>" + "</tr>";
+                                document.getElementById("print_restaurants").innerHTML = restaurant_info;
+                            }
+                            // when new page is reached, increment page number and re-fetch new results
+                            if (data.per_page == j + 1) {
+                                current_page++;
+                                new_page_api_url = api_url + '&page=' + current_page;
+                                fetch(new_page_api_url).then((response) => {
+                                    return response.json();
+                                })
+                                    .then((data) => {
+                                        // repeat process until last page has been reached, if last page has been reached then...
+                                        if (data.current_page == Math.ceil(data.total_entries / data.per_page)) {
+                                            // use modulo to find how many entries are on the last page, then only print these number of entries
+                                            for (var k = 0; k < data.total_entries % data.per_page; k++) {
+                                                restaurant_name = data.restaurants[k].name;
+                                                restaurant_address = data.restaurants[k].address;
+                                                restaurant_price = data.restaurants[k].price;
+                                                restaurant_info += "<tr> <th value=" + restaurant_name + ">" + restaurant_name + "</th>" +
+                                                    "<th>" + restaurant_address + "</th>" + "<th>" + restaurant_price + "</th>" + "</tr>";
+                                                document.getElementById("print_restaurants").innerHTML = restaurant_info;
+                                            }
+                                        }
+                                        else {
+                                            for (var k = 0; k < data.per_page; k++) {
+                                                restaurant_name = data.restaurants[k].name;
+                                                restaurant_address = data.restaurants[k].address;
+                                                restaurant_price = data.restaurants[k].price;
+                                                restaurant_info += "<tr> <th value=" + restaurant_name + ">" + restaurant_name + "</th>" +
+                                                    "<th>" + restaurant_address + "</th>" + "<th>" + restaurant_price + "</th>" + "</tr>";
+                                                document.getElementById("print_restaurants").innerHTML = restaurant_info;
+                                            }
+                                        }
+                                        // to see objects after first page returned
+                                        // console.log(data);
+                                    });
+                            }
+
+
+                        }
+                    }
+                }
+                // to see first page object returned
+                // console.log(data);
+            });
+
+    }
+
+
+
+
+
+</script>
